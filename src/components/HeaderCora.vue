@@ -30,49 +30,46 @@
                 Keranjang Belanja &nbsp;
                 <a href="#">
                   <i class="icon_bag_alt"></i>
-                  <span>3</span>
+                  <span>{{ userCart.length }}</span>
                 </a>
                 <div class="cart-hover">
                   <div class="select-items">
                     <table>
-                      <tbody>
-                        <tr>
+                      <tbody
+                        v-if="userCart !== undefined && userCart.length > 0"
+                      >
+                        <tr v-for="(items, n) in userCart" :key="items.id">
                           <td class="si-pic">
-                            <img src="img/select-product-1.jpg" alt />
+                            <img class="photoCart" :src="items.photo" alt />
                           </td>
                           <td class="si-text">
                             <div class="product-selected">
-                              <p>$60.00 x 1</p>
-                              <h6>Kabino Bedside Table</h6>
+                              <p>${{ items.price }} x 1</p>
+                              <h6>{{ items.name }}</h6>
                             </div>
                           </td>
-                          <td class="si-close">
-                            <i class="ti-close"></i>
+                          <td>
+                            <a @click="removeCart(n)" href="#">
+                              <i class="fa fa-times"></i>
+                            </a>
                           </td>
                         </tr>
+                      </tbody>
+                      <tbody v-else>
                         <tr>
-                          <td class="si-pic">
-                            <img src="img/select-product-2.jpg" alt />
-                          </td>
-                          <td class="si-text">
-                            <div class="product-selected">
-                              <p>$60.00 x 1</p>
-                              <h6>Kabino Bedside Table</h6>
-                            </div>
-                          </td>
-                          <td class="si-close">
-                            <i class="ti-close"></i>
-                          </td>
+                          <td>Your Cart is Empty</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                   <div class="select-total">
                     <span>total:</span>
-                    <h5>$120.00</h5>
+                    <h5>$ {{ totalHarga }}.00</h5>
                   </div>
                   <div class="select-button">
-                    <a href="#" class="primary-btn view-card">VIEW CARD</a>
+                    <router-link to="/cart" class="primary-btn view-card"
+                      >VIEW CARD</router-link
+                    >
                     <a href="#" class="primary-btn checkout-btn">CHECK OUT</a>
                   </div>
                 </div>
@@ -88,9 +85,41 @@
 
 <script>
 export default {
-  name: "HeaderCora"
+  name: "HeaderCora",
+  data() {
+    return {
+      userCart: [],
+    };
+  },
+  methods: {
+    removeCart(id) {
+      this.userCart.splice(id, 1);
+      const parsed = JSON.stringify(this.userCart);
+      localStorage.setItem("userCart", parsed);
+    },
+  },
+  computed: {
+    totalHarga() {
+      return this.userCart.reduce(function (items, data) {
+        return items + data.price;
+      }, 0);
+    },
+  },
+  mounted() {
+    if (localStorage.getItem("userCart")) {
+      try {
+        this.userCart = JSON.parse(localStorage.getItem("userCart"));
+      } catch (e) {
+        localStorage.removeItem("userCart");
+      }
+    }
+  },
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
+.photoCart {
+  width: 80px;
+  height: 100px;
+}
 </style>

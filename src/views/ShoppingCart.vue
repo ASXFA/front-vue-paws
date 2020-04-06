@@ -33,37 +33,30 @@
                         <th>Action</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      <tr>
+                    <tbody v-if="userCart !== undefined && userCart.length > 0">
+                      <tr v-for="(items, n) in userCart" :key="items.id">
                         <td class="cart-pic first-row">
-                          <img src="img/cart-page/product-1.jpg" />
+                          <img :src="items.photo" />
                         </td>
                         <td class="cart-title first-row text-center">
-                          <h5>Pure Pineapple</h5>
+                          <h5>{{ items.name }}</h5>
                         </td>
-                        <td class="p-price first-row">$60.00</td>
+                        <td class="p-price first-row">${{ items.price }}</td>
                         <td class="delete-item">
-                          <a href="#"
-                            ><i class="material-icons">
-                              close
-                            </i></a
+                          <router-link to="/cart">
+                            <a @click="removeCart(n)" href="#"
+                              ><i class="material-icons">
+                                close
+                              </i></a
+                            ></router-link
                           >
                         </td>
                       </tr>
+                    </tbody>
+                    <tbody v-else>
                       <tr>
-                        <td class="cart-pic first-row">
-                          <img src="img/cart-page/product-1.jpg" />
-                        </td>
-                        <td class="cart-title first-row text-center">
-                          <h5>Pure Pineapple</h5>
-                        </td>
-                        <td class="p-price first-row">$60.00</td>
-                        <td class="delete-item">
-                          <a href="#"
-                            ><i class="material-icons">
-                              close
-                            </i></a
-                          >
+                        <td colspan="4">
+                          Your cart is Empty, Go buy some Products !
                         </td>
                       </tr>
                     </tbody>
@@ -84,6 +77,7 @@
                         id="namaLengkap"
                         aria-describedby="namaHelp"
                         placeholder="Masukan Nama"
+                        v-model="customerInfo.name"
                       />
                     </div>
                     <div class="form-group">
@@ -94,6 +88,7 @@
                         id="emailAddress"
                         aria-describedby="emailHelp"
                         placeholder="Masukan Email"
+                        v-model="customerInfo.email"
                       />
                     </div>
                     <div class="form-group">
@@ -104,6 +99,7 @@
                         id="noHP"
                         aria-describedby="noHPHelp"
                         placeholder="Masukan No. HP"
+                        v-model="customerInfo.number"
                       />
                     </div>
                     <div class="form-group">
@@ -112,6 +108,7 @@
                         class="form-control"
                         id="alamatLengkap"
                         rows="3"
+                        v-model="customerInfo.address"
                       ></textarea>
                     </div>
                   </form>
@@ -127,10 +124,14 @@
                     <li class="subtotal">
                       ID Transaction <span>#SH12000</span>
                     </li>
-                    <li class="subtotal mt-3">Subtotal <span>$240.00</span></li>
-                    <li class="subtotal mt-3">Pajak <span>10%</span></li>
                     <li class="subtotal mt-3">
-                      Total Biaya <span>$440.00</span>
+                      Subtotal <span>$ {{ totalHarga }}.00</span>
+                    </li>
+                    <li class="subtotal mt-3">
+                      Pajak <span>10% = $ {{ pajak }}.00</span>
+                    </li>
+                    <li class="subtotal mt-3">
+                      Total Biaya <span>$ {{ totalBiaya }}.00</span>
                     </li>
                     <li class="subtotal mt-3">
                       Bank Transfer <span>Mandiri</span>
@@ -142,8 +143,8 @@
                       Nama Penerima <span>Shayna</span>
                     </li>
                   </ul>
-                  <router-link to="/success" class="proceed-btn">
-                    ALREADY PAID</router-link
+                  <a @click="checkout()" href="#" class="proceed-btn">
+                    <router-link to="/success"> ALREADY PAID</router-link></a
                   >
                 </div>
               </div>
@@ -158,11 +159,73 @@
 
 <script>
 import HeaderCora from "@/components/HeaderCora.vue";
+import axios from "axios";
 
 export default {
   name: "Cart",
   components: {
     HeaderCora,
+  },
+  data() {
+    return {
+      userCart: [],
+      customerInfo: {
+        name: "",
+        email: "",
+        number: "",
+        address: "",
+      },
+    };
+  },
+  methods: {
+    removeCart(id) {
+      this.userCart.splice(id, 1);
+      const parsed = JSON.stringify(this.userCart);
+      localStorage.setItem("userCart", parsed);
+      this.$forceUpdate();
+    },
+    checkout() {
+      let productIds = this.userCart.map(function (product) {
+        return product.id;
+      });
+
+      let checkoutData = {
+        name: this.customerInfo.name,
+        email: this.customerInfo.email,
+        number: this.customerInfo.number,
+        address: this.customerInfo.address,
+        transaction_total: this.totalBiaya,
+        transaction_status: "PENDING",
+        transaction_details: productIds,
+      };
+      axios
+        .post("http://127.0.0.1:8000/api/checkout", checkoutData)
+        .then(() => this.$router.push("success"))
+        // eslin-disable-next-lline no-console
+        .catch((err) => console.log(err));
+    },
+  },
+  computed: {
+    totalHarga() {
+      return this.userCart.reduce(function (items, data) {
+        return items + data.price;
+      }, 0);
+    },
+    pajak() {
+      return (this.totalHarga * 10) / 100;
+    },
+    totalBiaya() {
+      return this.totalHarga + this.pajak;
+    },
+  },
+  mounted() {
+    if (localStorage.getItem("userCart")) {
+      try {
+        this.userCart = JSON.parse(localStorage.getItem("userCart"));
+      } catch (e) {
+        localStorage.removeItem("userCart");
+      }
+    }
   },
 };
 </script>
